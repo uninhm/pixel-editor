@@ -1,0 +1,7 @@
+[package]
+name = "pixel-editor"
+version = "0.0.1"
+edition = "2024"
+
+[dependencies]
+iced = "0.13.1"

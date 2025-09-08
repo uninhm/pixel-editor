@@ -1,4 +1,4 @@
-use iced::{self, Task};
+use iced::Task;
 use iced::widget::{column, text, row, text_input, Column};
 use iced::Length::Fill;
 use iced::keyboard;

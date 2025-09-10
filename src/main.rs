@@ -1,8 +1,51 @@
-use iced::window::resize;
 use iced::Task;
-use iced::widget::{column, text, row, text_input, Column};
+use iced::widget::{canvas, column, text, row, text_input, Column};
 use iced::Length::Fill;
-use iced::keyboard;
+use iced::{mouse, keyboard};
+mod custom_widgets;
+
+struct PixelCanvas;
+
+impl canvas::Program<Message> for PixelCanvas {
+    type State = ();
+    
+    fn draw(
+        &self,
+        _state: &(),
+        renderer: &iced::Renderer,
+        _theme: &iced::Theme,
+        bounds: iced::Rectangle,
+        _cursor: mouse::Cursor
+    ) -> Vec<canvas::Geometry> {
+        let mut frame = canvas::Frame::new(renderer, bounds.size());
+        let vert_cell_count = 15.0;
+        let cell_size = bounds.height/vert_cell_count;
+        let horz_cell_count = bounds.width/cell_size;
+        let stroke = canvas::Stroke::default()
+            .with_width(0.7);
+        
+        // Draw grid lines
+        for i in 0..=vert_cell_count as i32 {
+            let y = (i as f32 * cell_size).floor() + 0.5; // floor+0.5 so the lines are on the middle of a pixel
+            let line = canvas::Path::line(
+                iced::Point::new(0.0, y),
+                iced::Point::new(bounds.width, y)
+            );
+            frame.stroke(&line, stroke);
+        }
+        for i in 0..=horz_cell_count as i32 {
+            let x = (i as f32 * cell_size).floor() + 0.5; // floor+0.5 so the lines are on the middle of a pixel
+            let line = canvas::Path::line(
+                iced::Point::new(x, 0.0),
+                iced::Point::new(x, bounds.height)
+            );
+            frame.stroke(&line, stroke);
+        }
+
+        // Then, we produce the geometry
+        vec![frame.into_geometry()]
+    }
+}
 
 #[derive(Debug, Clone)]
 enum Message {
@@ -32,22 +75,31 @@ impl App {
                     self.atoms
                         .iter()
                         .filter(|atom| atom.contains(&self.search_input_string))
-                        .map(|atom| text(atom.words.first().unwrap()).into())
-                    // TODO: Display a row with the pattent on the left and the words on the right
+                        .map(|atom| {
+                            row![
+                                custom_widgets::pattern(atom.pattern)
+                                    .side_length(20.0),
+                                text(atom.words.join(", "))
+                                    .size(20)
+                                    .width(Fill)
+                            ].spacing(10).padding(5).into()
+                        })
+                    // TODO: Display a row with the pattern on the left and the words on the right
                 )
             } else {
                 column![]
             };
 
         column![
-            row![
-                text_input("Search...", &self.search_input_string)
-                    .id("search_input")
-                    .on_input(Message::SearchInputChanged)
-                    .width(Fill),
-            ],
+            text_input("Search...", &self.search_input_string)
+                .id("search_input")
+                .on_input(Message::SearchInputChanged)
+                .width(Fill),
             search_results,
-        ].padding(10)
+            canvas(PixelCanvas { })
+                .width(Fill)
+                .height(Fill)
+        ].padding(10).spacing(10)
     }
     
     fn update(&mut self, message: Message) -> Task<Message> {

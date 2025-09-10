@@ -84,7 +84,6 @@ impl App {
                                     .width(Fill)
                             ].spacing(10).padding(5).into()
                         })
-                    // TODO: Display a row with the pattern on the left and the words on the right
                 )
             } else {
                 column![]

@@ -65,7 +65,7 @@ where
     ) {
         let height = layout.bounds().height;
         let width = layout.bounds().width;
-        const PATTERN_LENGTH: usize = 25;
+        const PATTERN_LENGTH: usize = 25; // TODO: Make this a setting
         for i in 0 .. PATTERN_LENGTH {
             if self.pattern & (1 << i) != 0 {
                 let x = (i % 5) as f32 * (width / 5.0);

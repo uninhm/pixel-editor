@@ -5,7 +5,7 @@ use iced::{mouse, keyboard, event};
 mod custom_widgets;
 
 // TODO: Infinite grid
-const GRID_SIZE: usize = 35;
+const GRID_SIZE: usize = 100;
 #[derive(Clone)]
 struct Grid<T> {
     grid: Vec<Vec<T>>
@@ -59,7 +59,7 @@ impl canvas::Program<Message> for PixelCanvas {
         _cursor: mouse::Cursor,
     ) -> (event::Status, Option<Message>) {
         let vert_cell_count = 35.0;
-        let cell_size = bounds.height/vert_cell_count;
+        let cell_size = (bounds.height/vert_cell_count).floor();
         match event {
             canvas::Event::Mouse(e) => {
                 match e {
@@ -94,7 +94,7 @@ impl canvas::Program<Message> for PixelCanvas {
     ) -> Vec<canvas::Geometry> {
         let mut frame = canvas::Frame::new(renderer, bounds.size());
         let vert_cell_count = 35.0;
-        let cell_size = bounds.height/vert_cell_count;
+        let cell_size = (bounds.height/vert_cell_count).floor();
         let horz_cell_count = bounds.width/cell_size;
         let stroke = canvas::Stroke::default()
             .with_width(0.7);
@@ -119,9 +119,9 @@ impl canvas::Program<Message> for PixelCanvas {
 
         // Draw the black squares
         for i in 0..=vert_cell_count as i64 {
-            let y = (i as f32 * cell_size).floor() + 0.5;
-            for j in 0..=vert_cell_count as i64 {
-                let x = (j as f32 * cell_size).floor() + 0.5;
+            let y = i as f32 * cell_size + 0.5;
+            for j in 0..=horz_cell_count as i64 {
+                let x = j as f32 * cell_size + 0.5;
                 let rect = canvas::Path::rectangle(
                     Point::new(x, y),
                     iced::Size::new(cell_size, cell_size),
@@ -138,8 +138,8 @@ impl canvas::Program<Message> for PixelCanvas {
         if bounds.contains(state.mouse_pos) && let Some(atom) = &self.selected_atom {
             let mouse_relative_x = state.mouse_pos.x - bounds.x;
             let mouse_relative_y = state.mouse_pos.y - bounds.y;
-            let start_x = ((mouse_relative_x / cell_size).floor() * cell_size).max(0.0);
-            let start_y = ((mouse_relative_y / cell_size).floor() * cell_size).max(0.0);
+            let start_x = ((mouse_relative_x / cell_size).floor() * cell_size).max(0.0) + 0.5;
+            let start_y = ((mouse_relative_y / cell_size).floor() * cell_size).max(0.0) + 0.5;
             for i in 0..5 {
                 for j in 0..5 {
                     let x = start_x + (j as f32 * cell_size);

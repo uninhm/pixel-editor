@@ -1,5 +1,3 @@
-use iced::advanced::graphics::futures::backend::default;
-use iced::keyboard::key;
 use iced::{Point, Task};
 use iced::widget::{button, canvas, column, row, text, text_input, Column};
 use iced::Length::Fill;
@@ -23,7 +21,7 @@ impl<T> Default for Grid<T> where T: Default + Clone {
 
 impl<T> Grid<T> where T: Default + Copy {
     fn get(&self, x: usize, y: usize) -> T {
-        if (0 <= x && x < GRID_SIZE && 0 <= y && y < GRID_SIZE) {
+        if x < GRID_SIZE && y < GRID_SIZE {
             self.grid[y][x]
         } else {
             T::default()
@@ -31,7 +29,7 @@ impl<T> Grid<T> where T: Default + Copy {
     }
 
     fn set(&mut self, x: usize, y: usize, val: T) {
-        if (0 <= x && x < GRID_SIZE && 0 <= y && y < GRID_SIZE) {
+        if x < GRID_SIZE && y < GRID_SIZE {
             self.grid[y][x] = val;
         } else {
             println!("Warning: Tried to set out-of-bounds grid cell ({}, {})", x, y);
@@ -144,7 +142,6 @@ impl canvas::Program<Message> for PixelCanvas {
             let start_y = ((mouse_relative_y / cell_size).floor() * cell_size).max(0.0);
             for i in 0..5 {
                 for j in 0..5 {
-                    let bit_index = 24 - (i * 5 + j);
                     let x = start_x + (j as f32 * cell_size);
                     let y = start_y + (i as f32 * cell_size);
                     let rect = canvas::Path::rectangle(

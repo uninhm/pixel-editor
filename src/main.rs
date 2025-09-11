@@ -1,6 +1,6 @@
 use iced::advanced::graphics::futures::backend::default;
 use iced::{Point, Task};
-use iced::widget::{canvas, column, text, row, text_input, Column};
+use iced::widget::{button, canvas, column, row, text, text_input, Column};
 use iced::Length::Fill;
 use iced::{mouse, keyboard, event};
 mod custom_widgets;
@@ -41,6 +41,7 @@ impl<T> Grid<T> where T: Default + Copy {
 #[derive(Default)]
 struct PixelCanvas {
     grid: Grid<bool>,
+    selected_atom: Option<Atom>,
 }
 
 #[derive(Default)]
@@ -86,7 +87,7 @@ impl canvas::Program<Message> for PixelCanvas {
     
     fn draw(
         &self,
-        _state: &Self::State,
+        state: &Self::State,
         renderer: &iced::Renderer,
         _theme: &iced::Theme,
         bounds: iced::Rectangle,
@@ -134,6 +135,32 @@ impl canvas::Program<Message> for PixelCanvas {
                 }
             }
         }
+        
+        if self.selected_atom.is_some() && bounds.contains(state.mouse_pos) {
+            let atom = self.selected_atom.as_ref().unwrap();
+            let mouse_relative_x = state.mouse_pos.x - bounds.x;
+            let mouse_relative_y = state.mouse_pos.y - bounds.y;
+            let start_x = ((mouse_relative_x / cell_size).floor() * cell_size).max(0.0);
+            let start_y = ((mouse_relative_y / cell_size).floor() * cell_size).max(0.0);
+            for i in 0..5 {
+                for j in 0..5 {
+                    let bit_index = 24 - (i * 5 + j);
+                    let x = start_x + (j as f32 * cell_size);
+                    let y = start_y + (i as f32 * cell_size);
+                    let rect = canvas::Path::rectangle(
+                        Point::new(x, y),
+                        iced::Size::new(cell_size, cell_size),
+                    );
+                    let bit_value = (atom.pattern >> bit_index) & 1;
+                    if bit_value != 0 {
+                        frame.fill(
+                            &rect,
+                            iced::Color::from_rgb(0.0, 0.0,1.0) 
+                        );
+                    }
+                }
+            }
+        }
 
         // Then, we produce the geometry
         vec![frame.into_geometry()]
@@ -145,12 +172,15 @@ enum Message {
     SearchInputChanged(String),
     FocusSearchInput,
     CellClicked(usize, usize),
+    SelectAtom(Atom),
+    UnselectAtom,
 }
 
 struct App {
     search_input_string: String,
     atoms: Vec<Atom>,
     grid: Grid<bool>,
+    selected_atom: Option<Atom>,
 }
 
 impl Default for App {
@@ -158,7 +188,8 @@ impl Default for App {
         Self {
             search_input_string: String::new(),
             atoms: import_csv(),
-            grid: Grid::default()
+            grid: Grid::default(),
+            selected_atom: None,
         }
     }
 }
@@ -172,13 +203,15 @@ impl App {
                         .iter()
                         .filter(|atom| atom.contains(&self.search_input_string))
                         .map(|atom| {
-                            row![
-                                custom_widgets::pattern(atom.pattern)
-                                    .side_length(20.0),
-                                text(atom.words.join(", "))
-                                    .size(20)
-                                    .width(Fill)
-                            ].spacing(10).padding(5).into()
+                            button(
+                                row![
+                                    custom_widgets::pattern(atom.pattern)
+                                        .side_length(20.0),
+                                    text(atom.words.join(", "))
+                                        .size(20)
+                                        .width(Fill)
+                                ].spacing(10).padding(5)
+                            ).on_press(Message::SelectAtom(atom.clone())).into()
                         })
                 )
             } else {
@@ -191,7 +224,11 @@ impl App {
                 .on_input(Message::SearchInputChanged)
                 .width(Fill),
             search_results,
-            canvas(PixelCanvas { grid: self.grid.clone(), ..Default::default() })
+            canvas(PixelCanvas {
+                grid: self.grid.clone(),
+                selected_atom: self.selected_atom.clone(),
+                ..Default::default()
+            })
                 .width(Fill)
                 .height(Fill)
         ].padding(10).spacing(10)
@@ -207,7 +244,28 @@ impl App {
                 text_input::focus("search_input")
             },
             Message::CellClicked(x, y) => {
-                self.grid.set(x, y, !self.grid.get(x, y));
+                if self.selected_atom.is_some() {
+                    for i in 0..5 {
+                        let y = y + i;
+                        for j in 0..5 {
+                            let x = x + j;
+                            let bit_index = 24 - (i * 5 + j);
+                            let bit_value = (self.selected_atom.as_ref().unwrap().pattern >> bit_index) & 1;
+                            self.grid.set(x, y, bit_value != 0);
+                        }
+                    }
+                    self.selected_atom = None;
+                } else {
+                    self.grid.set(x, y, !self.grid.get(x, y));
+                }
+                Task::none()
+            },
+            Message::SelectAtom(atom) => {
+                self.selected_atom = Some(atom);
+                Task::none()
+            },
+            Message::UnselectAtom => {
+                self.selected_atom = None;
                 Task::none()
             }
         }
@@ -223,6 +281,7 @@ impl App {
     }
 }
 
+#[derive(Clone, Debug)]
 struct Atom {
     words: Vec<String>,
 

@@ -7,6 +7,7 @@ mod custom_widgets;
 
 // TODO: Infinite grid
 const GRID_SIZE: usize = 35;
+#[derive(Clone)]
 struct Grid<T> {
     grid: Vec<Vec<T>>
 }
@@ -24,7 +25,7 @@ impl<T> Grid<T> where T: Default + Copy {
         if (0 <= x && x < GRID_SIZE && 0 <= y && y < GRID_SIZE) {
             self.grid[y][x]
         } else {
-            unimplemented!()
+            T::default()
         }
     }
 
@@ -32,7 +33,7 @@ impl<T> Grid<T> where T: Default + Copy {
         if (0 <= x && x < GRID_SIZE && 0 <= y && y < GRID_SIZE) {
             self.grid[y][x] = val;
         } else {
-            unimplemented!()
+            println!("Warning: Tried to set out-of-bounds grid cell ({}, {})", x, y);
         }
     }
 }
@@ -40,7 +41,6 @@ impl<T> Grid<T> where T: Default + Copy {
 #[derive(Default)]
 struct PixelCanvas {
     grid: Grid<bool>,
-    mouse_pos: Point,
 }
 
 #[derive(Default)]
@@ -68,8 +68,11 @@ impl canvas::Program<Message> for PixelCanvas {
                         (event::Status::Captured, None)
                     },
                     mouse::Event::ButtonPressed(mouse::Button::Left) => {
-                        let x: usize = (state.mouse_pos.x / cell_size) as usize;
-                        let y: usize = (state.mouse_pos.y / cell_size) as usize;
+                        if !bounds.contains(state.mouse_pos) {
+                            return (event::Status::Ignored, None);
+                        }
+                        let x: usize = ((state.mouse_pos.x - bounds.x) / cell_size) as usize;
+                        let y: usize = ((state.mouse_pos.y - bounds.y) / cell_size) as usize;
                         (event::Status::Captured, Some(Message::CellClicked(x, y)))
                     }
                     _ => (event::Status::Ignored, None),
@@ -116,8 +119,19 @@ impl canvas::Program<Message> for PixelCanvas {
 
         // Draw the black squares
         for i in 0..=vert_cell_count as i64 {
+            let y = (i as f32 * cell_size).floor() + 0.5;
             for j in 0..=vert_cell_count as i64 {
-                unimplemented!()
+                let x = (j as f32 * cell_size).floor() + 0.5;
+                let rect = canvas::Path::rectangle(
+                    Point::new(x, y),
+                    iced::Size::new(cell_size, cell_size),
+                );
+                if self.grid.get(j as usize, i as usize) {
+                    frame.fill(
+                        &rect,
+                        iced::Color::BLACK
+                    );
+                }
             }
         }
 
@@ -177,7 +191,7 @@ impl App {
                 .on_input(Message::SearchInputChanged)
                 .width(Fill),
             search_results,
-            canvas(PixelCanvas::default())
+            canvas(PixelCanvas { grid: self.grid.clone(), ..Default::default() })
                 .width(Fill)
                 .height(Fill)
         ].padding(10).spacing(10)

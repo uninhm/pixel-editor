@@ -118,6 +118,7 @@ impl canvas::Program<Message> for PixelCanvas {
         }
 
         // Draw the black squares
+        // TODO: Add color settings
         for i in 0..=vert_cell_count as i64 {
             let y = i as f32 * cell_size + 0.5;
             for j in 0..=horz_cell_count as i64 {
@@ -240,7 +241,10 @@ impl App {
                 text_input::focus("search_input")
             },
             Message::CellClicked(x, y) => {
+                // TODO: Hold and drag to draw (keep the first color, do not invert each cell)
                 if let Some(atom) = &self.selected_atom {
+                    // TODO: Left click to paste only back pixels, right click to paste both
+                    // and erase pixels
                     for i in 0..5 {
                         let y = y + i;
                         for j in 0..5 {

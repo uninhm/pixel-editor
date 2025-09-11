@@ -4,12 +4,12 @@ use iced::advanced::widget::{self, Widget};
 use iced::mouse;
 use iced::{Color, Element, Length, Rectangle, Size};
 
-pub struct Pattern { // TODO: Rename to AtomWidget
+pub struct AtomWidget {
     pattern: u32,
     side_length: f32,
 }
 
-impl Pattern {
+impl AtomWidget {
     pub fn new(pattern: u32) -> Self {
         Self {
             pattern,
@@ -23,11 +23,11 @@ impl Pattern {
     }
 }
 
-pub fn pattern(pattern: u32) -> Pattern {
-    Pattern::new(pattern)
+pub fn atom_widget(pattern: u32) -> AtomWidget {
+    AtomWidget::new(pattern)
 }
 
-impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Pattern
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for AtomWidget
 where
     Renderer: renderer::Renderer,
 {
@@ -86,12 +86,12 @@ where
     }
 }
 
-impl<Message, Theme, Renderer> From<Pattern>
+impl<Message, Theme, Renderer> From<AtomWidget>
     for Element<'_, Message, Theme, Renderer>
 where
     Renderer: renderer::Renderer,
 {
-    fn from(pattern: Pattern) -> Self {
+    fn from(pattern: AtomWidget) -> Self {
         Self::new(pattern)
     }
 }

@@ -201,7 +201,7 @@ impl App {
                         .map(|atom| {
                             button(
                                 row![
-                                    custom_widgets::pattern(atom.pattern)
+                                    custom_widgets::atom_widget(atom.pattern)
                                         .side_length(20.0),
                                     text(atom.words.join(", "))
                                         .size(20)

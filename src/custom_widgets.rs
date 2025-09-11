@@ -1,11 +1,10 @@
 use iced::advanced::layout::{self, Layout};
-use iced::advanced::{renderer, Renderer};
+use iced::advanced::renderer;
 use iced::advanced::widget::{self, Widget};
-use iced::border;
 use iced::mouse;
 use iced::{Color, Element, Length, Rectangle, Size};
 
-pub struct Pattern {
+pub struct Pattern { // TODO: Rename to AtomWidget
     pattern: u32,
     side_length: f32,
 }
@@ -65,21 +64,23 @@ where
     ) {
         let height = layout.bounds().height;
         let width = layout.bounds().width;
-        const PATTERN_LENGTH: usize = 25; // TODO: Make this a setting
-        for i in 0 .. PATTERN_LENGTH {
-            if self.pattern & (1 << i) != 0 {
-                let x = (i % 5) as f32 * (width / 5.0);
-                let y = (4 - i / 5) as f32 * (height / 5.0);
-                let square = renderer::Quad {
-                    bounds: Rectangle {
-                        x: x + layout.bounds().x,
-                        y: y + layout.bounds().y,
-                        width: width / 5.0,
-                        height: height / 5.0,
-                    },
-                    ..renderer::Quad::default()
-                };
-                renderer.fill_quad(square, Color::BLACK);
+        const PATTERN_SIDE: usize = 5; // TODO: Make this a setting
+        for i in 0 .. PATTERN_SIDE {
+            let y = i as f32 * (height / 5.0);
+            for j in 0 .. PATTERN_SIDE {
+                let x = j as f32 * (width / 5.0);
+                if self.pattern & (1 << (24 - i*5 - j)) != 0 {
+                    let square = renderer::Quad {
+                        bounds: Rectangle {
+                            x: x + layout.bounds().x,
+                            y: y + layout.bounds().y,
+                            width: width / 5.0,
+                            height: height / 5.0,
+                        },
+                        ..renderer::Quad::default()
+                    };
+                    renderer.fill_quad(square, Color::BLACK);
+                }
             }
         }
     }

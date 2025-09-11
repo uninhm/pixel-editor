@@ -1,4 +1,5 @@
 use iced::advanced::graphics::futures::backend::default;
+use iced::keyboard::key;
 use iced::{Point, Task};
 use iced::widget::{button, canvas, column, row, text, text_input, Column};
 use iced::Length::Fill;
@@ -136,8 +137,7 @@ impl canvas::Program<Message> for PixelCanvas {
             }
         }
         
-        if self.selected_atom.is_some() && bounds.contains(state.mouse_pos) {
-            let atom = self.selected_atom.as_ref().unwrap();
+        if bounds.contains(state.mouse_pos) && let Some(atom) = &self.selected_atom {
             let mouse_relative_x = state.mouse_pos.x - bounds.x;
             let mouse_relative_y = state.mouse_pos.y - bounds.y;
             let start_x = ((mouse_relative_x / cell_size).floor() * cell_size).max(0.0);
@@ -151,8 +151,7 @@ impl canvas::Program<Message> for PixelCanvas {
                         Point::new(x, y),
                         iced::Size::new(cell_size, cell_size),
                     );
-                    let bit_value = (atom.pattern >> bit_index) & 1;
-                    if bit_value != 0 {
+                    if atom.nth_bit(i * 5 + j) {
                         frame.fill(
                             &rect,
                             iced::Color::from_rgb(0.0, 0.0,1.0) 
@@ -244,14 +243,12 @@ impl App {
                 text_input::focus("search_input")
             },
             Message::CellClicked(x, y) => {
-                if self.selected_atom.is_some() {
+                if let Some(atom) = &self.selected_atom {
                     for i in 0..5 {
                         let y = y + i;
                         for j in 0..5 {
                             let x = x + j;
-                            let bit_index = 24 - (i * 5 + j);
-                            let bit_value = (self.selected_atom.as_ref().unwrap().pattern >> bit_index) & 1;
-                            self.grid.set(x, y, bit_value != 0);
+                            self.grid.set(x, y, atom.nth_bit(i * 5 + j));
                         }
                     }
                     self.selected_atom = None;
@@ -275,6 +272,7 @@ impl App {
         keyboard::on_key_press(|key, _modifiers| {
             match key.as_ref() {
                 keyboard::Key::Character("/") => Some(Message::FocusSearchInput),
+                keyboard::Key::Named(keyboard::key::Named::Escape) => Some(Message::UnselectAtom),
                 _ => None,
             }
         })
@@ -325,6 +323,13 @@ impl Atom {
     
     fn contains(&self, query: &str) -> bool {
         self.words.iter().any(|word| word.to_lowercase().contains(&query.to_lowercase()))
+    }
+    
+    fn nth_bit(&self, n: usize) -> bool {
+        if n >= 25 {
+            panic!("Bit index out of range");
+        }
+        (self.pattern >> (24 - n)) & 1 != 0
     }
 }
 

@@ -1,24 +1,96 @@
-use iced::Task;
+use iced::advanced::graphics::futures::backend::default;
+use iced::{Point, Task};
 use iced::widget::{canvas, column, text, row, text_input, Column};
 use iced::Length::Fill;
-use iced::{mouse, keyboard};
+use iced::{mouse, keyboard, event};
 mod custom_widgets;
 
-struct PixelCanvas;
+// TODO: Infinite grid
+const GRID_SIZE: usize = 35;
+struct Grid<T> {
+    grid: Vec<Vec<T>>
+}
+
+impl<T> Default for Grid<T> where T: Default + Clone {
+    fn default() -> Self {
+        Self {
+            grid: vec![vec![T::default(); GRID_SIZE]; GRID_SIZE]
+        }
+    }
+}
+
+impl<T> Grid<T> where T: Default + Copy {
+    fn get(&self, x: usize, y: usize) -> T {
+        if (0 <= x && x < GRID_SIZE && 0 <= y && y < GRID_SIZE) {
+            self.grid[y][x]
+        } else {
+            unimplemented!()
+        }
+    }
+
+    fn set(&mut self, x: usize, y: usize, val: T) {
+        if (0 <= x && x < GRID_SIZE && 0 <= y && y < GRID_SIZE) {
+            self.grid[y][x] = val;
+        } else {
+            unimplemented!()
+        }
+    }
+}
+
+#[derive(Default)]
+struct PixelCanvas {
+    grid: Grid<bool>,
+    mouse_pos: Point,
+}
+
+#[derive(Default)]
+struct CanvasState {
+    mouse_pos: Point,
+}
 
 impl canvas::Program<Message> for PixelCanvas {
-    type State = ();
+    type State = CanvasState;
+
+    fn update(
+        &self,
+        state: &mut Self::State,
+        event: canvas::Event,
+        bounds: iced::Rectangle,
+        _cursor: mouse::Cursor,
+    ) -> (event::Status, Option<Message>) {
+        let vert_cell_count = 35.0;
+        let cell_size = bounds.height/vert_cell_count;
+        match event {
+            canvas::Event::Mouse(e) => {
+                match e {
+                    mouse::Event::CursorMoved{position} => {
+                        state.mouse_pos = position;
+                        (event::Status::Captured, None)
+                    },
+                    mouse::Event::ButtonPressed(mouse::Button::Left) => {
+                        let x: usize = (state.mouse_pos.x / cell_size) as usize;
+                        let y: usize = (state.mouse_pos.y / cell_size) as usize;
+                        (event::Status::Captured, Some(Message::CellClicked(x, y)))
+                    }
+                    _ => (event::Status::Ignored, None),
+                }
+            },
+            _ => {
+                (event::Status::Ignored, None)
+            }
+        }
+    }
     
     fn draw(
         &self,
-        _state: &(),
+        _state: &Self::State,
         renderer: &iced::Renderer,
         _theme: &iced::Theme,
         bounds: iced::Rectangle,
         _cursor: mouse::Cursor
     ) -> Vec<canvas::Geometry> {
         let mut frame = canvas::Frame::new(renderer, bounds.size());
-        let vert_cell_count = 15.0;
+        let vert_cell_count = 35.0;
         let cell_size = bounds.height/vert_cell_count;
         let horz_cell_count = bounds.width/cell_size;
         let stroke = canvas::Stroke::default()
@@ -42,6 +114,13 @@ impl canvas::Program<Message> for PixelCanvas {
             frame.stroke(&line, stroke);
         }
 
+        // Draw the black squares
+        for i in 0..=vert_cell_count as i64 {
+            for j in 0..=vert_cell_count as i64 {
+                unimplemented!()
+            }
+        }
+
         // Then, we produce the geometry
         vec![frame.into_geometry()]
     }
@@ -51,11 +130,13 @@ impl canvas::Program<Message> for PixelCanvas {
 enum Message {
     SearchInputChanged(String),
     FocusSearchInput,
+    CellClicked(usize, usize),
 }
 
 struct App {
     search_input_string: String,
     atoms: Vec<Atom>,
+    grid: Grid<bool>,
 }
 
 impl Default for App {
@@ -63,6 +144,7 @@ impl Default for App {
         Self {
             search_input_string: String::new(),
             atoms: import_csv(),
+            grid: Grid::default()
         }
     }
 }
@@ -95,7 +177,7 @@ impl App {
                 .on_input(Message::SearchInputChanged)
                 .width(Fill),
             search_results,
-            canvas(PixelCanvas { })
+            canvas(PixelCanvas::default())
                 .width(Fill)
                 .height(Fill)
         ].padding(10).spacing(10)
@@ -109,6 +191,10 @@ impl App {
             },
             Message::FocusSearchInput => {
                 text_input::focus("search_input")
+            },
+            Message::CellClicked(x, y) => {
+                self.grid.set(x, y, !self.grid.get(x, y));
+                Task::none()
             }
         }
     }

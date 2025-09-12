@@ -6,6 +6,7 @@ mod custom_widgets;
 
 // TODO: Infinite grid
 const GRID_SIZE: usize = 100;
+type GridIndex = usize;
 #[derive(Clone)]
 struct Grid<T> {
     grid: Vec<Vec<T>>
@@ -20,7 +21,7 @@ impl<T> Default for Grid<T> where T: Default + Clone {
 }
 
 impl<T> Grid<T> where T: Default + Copy {
-    fn get(&self, x: usize, y: usize) -> T {
+    fn get(&self, x: GridIndex, y: GridIndex) -> T {
         if x < GRID_SIZE && y < GRID_SIZE {
             self.grid[y][x]
         } else {
@@ -28,7 +29,7 @@ impl<T> Grid<T> where T: Default + Copy {
         }
     }
 
-    fn set(&mut self, x: usize, y: usize, val: T) {
+    fn set(&mut self, x: GridIndex, y: GridIndex, val: T) {
         if x < GRID_SIZE && y < GRID_SIZE {
             self.grid[y][x] = val;
         } else {
@@ -65,16 +66,20 @@ impl canvas::Program<Message> for PixelCanvas {
                 match e {
                     mouse::Event::CursorMoved{position} => {
                         state.mouse_pos = position;
-                        (event::Status::Captured, None)
+                        let x: GridIndex = ((state.mouse_pos.x - bounds.x) / cell_size) as GridIndex;
+                        let y: GridIndex = ((state.mouse_pos.y - bounds.y) / cell_size) as GridIndex;
+                        (event::Status::Captured, Some(Message::CursorMovedToCell(x, y)))
                     },
                     mouse::Event::ButtonPressed(mouse::Button::Left) => {
                         if !bounds.contains(state.mouse_pos) {
                             return (event::Status::Ignored, None);
                         }
-                        let x: usize = ((state.mouse_pos.x - bounds.x) / cell_size) as usize;
-                        let y: usize = ((state.mouse_pos.y - bounds.y) / cell_size) as usize;
+                        let x: GridIndex = ((state.mouse_pos.x - bounds.x) / cell_size) as GridIndex;
+                        let y: GridIndex = ((state.mouse_pos.y - bounds.y) / cell_size) as GridIndex;
                         (event::Status::Captured, Some(Message::CellClicked(x, y)))
                     }
+                    mouse::Event::ButtonReleased(mouse::Button::Left) =>
+                        (event::Status::Captured, Some(Message::MouseReleased)),
                     _ => (event::Status::Ignored, None),
                 }
             },
@@ -127,7 +132,7 @@ impl canvas::Program<Message> for PixelCanvas {
                     Point::new(x, y),
                     iced::Size::new(cell_size, cell_size),
                 );
-                if self.grid.get(j as usize, i as usize) {
+                if self.grid.get(j as GridIndex, i as GridIndex) {
                     frame.fill(
                         &rect,
                         iced::Color::BLACK
@@ -168,7 +173,9 @@ impl canvas::Program<Message> for PixelCanvas {
 enum Message {
     SearchInputChanged(String),
     FocusSearchInput,
-    CellClicked(usize, usize),
+    CellClicked(GridIndex, GridIndex),
+    CursorMovedToCell(GridIndex, GridIndex),
+    MouseReleased,
     SelectAtom(Atom),
     UnselectAtom,
 }
@@ -178,6 +185,8 @@ struct App {
     atoms: Vec<Atom>,
     grid: Grid<bool>,
     selected_atom: Option<Atom>,
+    holding_to_draw: bool,
+    mouse_hold_value: bool, // Value to set cells to while mouse is down
 }
 
 impl Default for App {
@@ -187,6 +196,8 @@ impl Default for App {
             atoms: import_csv(),
             grid: Grid::default(),
             selected_atom: None,
+            holding_to_draw: false,
+            mouse_hold_value: false,
         }
     }
 }
@@ -255,6 +266,8 @@ impl App {
                     self.selected_atom = None;
                 } else {
                     self.grid.set(x, y, !self.grid.get(x, y));
+                    self.mouse_hold_value = self.grid.get(x, y);
+                    self.holding_to_draw = true;
                 }
                 Task::none()
             },
@@ -265,7 +278,17 @@ impl App {
             Message::UnselectAtom => {
                 self.selected_atom = None;
                 Task::none()
-            }
+            },
+            Message::CursorMovedToCell(x, y) => {
+                if self.holding_to_draw {
+                    self.grid.set(x, y, self.mouse_hold_value);
+                }
+                Task::none()
+            },
+            Message::MouseReleased => {
+                self.holding_to_draw = false;
+                Task::none()
+            },
         }
     }
     

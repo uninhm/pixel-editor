@@ -9,7 +9,7 @@ A tool for pixel writing.
    2. [Zooming](#Zooming)
    3. [Drawing](#Drawing)
    4. [Keys](#Keys)
-   5. [Data file](#Data_file)
+   5. [Data file](#Data-file)
 
 ## Description
 This tools is designed to let the user import a set of 5x5 *patterns* that can be searched by keywords.

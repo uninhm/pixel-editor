@@ -4,15 +4,16 @@ https://github.com/user-attachments/assets/b47ada6d-8741-4b74-9f26-319dd6e09b7b
 # pixel-editor
 A tool for pixel writing.
 
-## Table of content
-1. [Description](#Description)
-2. [Compilation](#Compilation)
-3. [Usage](#Usage)
-   1. [Movement](#Movement)
-   2. [Zooming](#Zooming)
-   3. [Drawing](#Drawing)
-   4. [Keys](#Keys)
-   5. [Data file](#Data-file)
+## Table of contents
+1. [Description](#description)
+2. [Compilation](#compilation)
+3. [Planned features](#planned-features)
+4. [Usage](#usage)
+   1. [Movement](#movement)
+   2. [Zooming](#zooming)
+   3. [Drawing](#drawing)
+   4. [Keys](#keys)
+   5. [Data file](#data-file)
 
 ## Description
 This tools is designed to let the user import a set of 5x5 *patterns* that can be searched by keywords.
@@ -23,6 +24,14 @@ Just like any cargo package.
 ```bash
 cargo build --realease
 ```
+
+## Planned features
+- [ ] Save drawing
+- [ ] Import drawing
+- [ ] Export drawing
+- [ ] Settings file
+- [ ] Settings GUI
+- [ ] Colors
 
 ## Usage
 ### Movement

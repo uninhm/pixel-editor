@@ -1,34 +1,22 @@
-// TODO: Infinite grid
-const GRID_SIZE: usize = 100;
-pub type GridIndex = usize;
-#[derive(Clone)]
-pub struct Grid<T> {
-    grid: Vec<Vec<T>>
-}
+use std::collections::HashMap;
 
-impl<T> Default for Grid<T> where T: Default + Clone {
-    fn default() -> Self {
-        Self {
-            grid: vec![vec![T::default(); GRID_SIZE]; GRID_SIZE]
-        }
-    }
+pub type GridIndex = i64;
+type GridPoint = (GridIndex, GridIndex);
+#[derive(Default, Clone)]
+pub struct Grid<T> {
+    grid: HashMap<GridPoint, T>,
 }
 
 impl<T> Grid<T> where T: Default + Copy {
     pub fn get(&self, x: GridIndex, y: GridIndex) -> T {
-        if x < GRID_SIZE && y < GRID_SIZE {
-            self.grid[y][x]
-        } else {
-            T::default()
+        match self.grid.get(&(x, y)) {
+            Some(&val) => val,
+            None => T::default(),
         }
     }
 
     pub fn set(&mut self, x: GridIndex, y: GridIndex, val: T) {
-        if x < GRID_SIZE && y < GRID_SIZE {
-            self.grid[y][x] = val;
-        } else {
-            println!("Warning: Tried to set out-of-bounds grid cell ({}, {})", x, y);
-        }
+        self.grid.insert((x, y), val);
     }
 }
 
@@ -78,7 +66,7 @@ impl Atom {
         self.words.iter().any(|word| word.to_lowercase().contains(&query.to_lowercase()))
     }
     
-    pub fn nth_bit(&self, n: usize) -> bool {
+    pub fn nth_bit(&self, n: i64) -> bool {
         if n >= 25 {
             panic!("Bit index out of range");
         }
@@ -95,4 +83,6 @@ pub enum Message {
     MouseReleased,
     SelectAtom(Atom),
     UnselectAtom,
+    ZoomIn,
+    ZoomOut,
 }

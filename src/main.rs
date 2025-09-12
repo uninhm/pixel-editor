@@ -16,6 +16,7 @@ struct App {
     selected_atom: Option<Atom>,
     holding_to_draw: bool,
     mouse_hold_value: bool, // Value to set cells to while mouse is down
+    cell_size: f32,
 }
 
 impl Default for App {
@@ -27,6 +28,7 @@ impl Default for App {
             selected_atom: None,
             holding_to_draw: false,
             mouse_hold_value: false,
+            cell_size: 20.0,
         }
     }
 }
@@ -64,6 +66,7 @@ impl App {
             canvas(PixelCanvas::new(
                 self.grid.clone(),
                 self.selected_atom.clone(),
+                self.cell_size,
             ))
                 .width(Fill)
                 .height(Fill)
@@ -80,7 +83,6 @@ impl App {
                 text_input::focus("search_input")
             },
             Message::CellClicked(x, y) => {
-                // TODO: Hold and drag to draw (keep the first color, do not invert each cell)
                 if let Some(atom) = &self.selected_atom {
                     // TODO: Left click to paste only back pixels, right click to paste both
                     // and erase pixels
@@ -115,6 +117,20 @@ impl App {
             },
             Message::MouseReleased => {
                 self.holding_to_draw = false;
+                Task::none()
+            },
+            Message::ZoomIn => {
+                if self.cell_size <= 10.0 {
+                    self.cell_size += 1.0;
+                } else {
+                    self.cell_size *= 1.1;
+                }
+                self.cell_size = self.cell_size.floor().min(100.0);
+                Task::none()
+            },
+            Message::ZoomOut => {
+                self.cell_size /= 1.1;
+                self.cell_size = self.cell_size.floor().max(5.0);
                 Task::none()
             },
         }

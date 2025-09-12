@@ -32,6 +32,9 @@ cargo build --realease
 - [ ] Settings file
 - [ ] Settings GUI
 - [ ] Colors
+- [ ] Select cells
+- [ ] Delete selection
+- [ ] Display selection's meaning
 
 ## Usage
 ### Movement

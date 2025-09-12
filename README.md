@@ -31,7 +31,7 @@ cargo build --realease
 - Zoom in and out with the mouse wheel.
 ### Drawing
 - Left click to switch a pixel on and off.
-- Left click and drag with copy the resulting color after switching to the pixels you pass by.
+- Left click and drag will copy the resulting color after switching to the pixels you pass by.
 ### Keys
 - `/` to focus the search bar.
 - `Esc` to unselect a pattern without pasting it.

@@ -119,11 +119,15 @@ impl canvas::Program<Message> for PixelCanvas {
         let horz_cell_count = bounds.width/self.cell_size + 1.0;
         let stroke = canvas::Stroke::default()
             .with_width(0.7);
+        
+        // Distance from the top left corner to the next grid line to the top
         let mod_y = if state.top_left.y < 0.0 {
             (state.top_left.y % self.cell_size + self.cell_size) % self.cell_size
         } else {
             state.top_left.y % self.cell_size
         };
+
+        // Distance from the top left corner to the next grid line to the left
         let mod_x = if state.top_left.x < 0.0 {
             (state.top_left.x % self.cell_size + self.cell_size) % self.cell_size
         } else {
@@ -170,6 +174,8 @@ impl canvas::Program<Message> for PixelCanvas {
         }
         
         if bounds.contains(state.mouse_pos) && let Some(atom) = &self.selected_atom {
+            // Adding the mods first will align the grid to (0, 0) so the cell_size snapping calculation works
+            // Then substracting them will offset everything back just like the block rendering above
             let mouse_relative_x = state.mouse_pos.x - bounds.x + mod_x;
             let mouse_relative_y = state.mouse_pos.y - bounds.y + mod_y;
             let start_x = (mouse_relative_x / self.cell_size).floor() * self.cell_size - mod_x;

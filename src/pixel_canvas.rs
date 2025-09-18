@@ -9,6 +9,7 @@ pub struct PixelCanvas {
     grid: Grid<bool>,
     selected_atom: Option<Atom>,
     cell_size: f32,
+    grid_visible: bool,
 }
 
 impl PixelCanvas {
@@ -16,8 +17,9 @@ impl PixelCanvas {
         grid: Grid<bool>,
         selected_atom: Option<Atom>,
         cell_size: f32,
+        grid_visible: bool,
     ) -> Self {
-        Self { grid, selected_atom, cell_size }
+        Self { grid, selected_atom, cell_size, grid_visible }
     }
 }
 
@@ -135,21 +137,23 @@ impl canvas::Program<Message> for PixelCanvas {
         };
         
         // Draw grid lines
-        for i in 0..=vert_cell_count as i32 {
-            let y = (i as f32 * self.cell_size) - state.top_left.y % self.cell_size;
-            let line = canvas::Path::line(
-                iced::Point::new(0.0, y),
-                iced::Point::new(bounds.width, y)
-            );
-            frame.stroke(&line, stroke);
-        }
-        for i in 0..=horz_cell_count as i32 {
-            let x = (i as f32 * self.cell_size).floor() - state.top_left.x % self.cell_size;
-            let line = canvas::Path::line(
-                iced::Point::new(x, 0.0),
-                iced::Point::new(x, bounds.height)
-            );
-            frame.stroke(&line, stroke);
+        if self.grid_visible {
+            for i in 0..=vert_cell_count as i32 {
+                let y = (i as f32 * self.cell_size) - state.top_left.y % self.cell_size;
+                let line = canvas::Path::line(
+                    iced::Point::new(0.0, y),
+                    iced::Point::new(bounds.width, y)
+                );
+                frame.stroke(&line, stroke);
+            }
+            for i in 0..=horz_cell_count as i32 {
+                let x = (i as f32 * self.cell_size).floor() - state.top_left.x % self.cell_size;
+                let line = canvas::Path::line(
+                    iced::Point::new(x, 0.0),
+                    iced::Point::new(x, bounds.height)
+                );
+                frame.stroke(&line, stroke);
+            }
         }
 
         // Draw the black squares

@@ -17,6 +17,7 @@ struct App {
     holding_to_draw: bool,
     mouse_hold_value: bool, // Value to set cells to while mouse is down
     cell_size: f32,
+    grid_visible: bool,
 }
 
 impl Default for App {
@@ -29,6 +30,7 @@ impl Default for App {
             holding_to_draw: false,
             mouse_hold_value: false,
             cell_size: 20.0,
+            grid_visible: true,
         }
     }
 }
@@ -67,6 +69,7 @@ impl App {
                 self.grid.clone(),
                 self.selected_atom.clone(),
                 self.cell_size,
+                self.grid_visible,
             ))
                 .width(Fill)
                 .height(Fill)
@@ -133,6 +136,10 @@ impl App {
                 self.cell_size = self.cell_size.floor().max(5.0);
                 Task::none()
             },
+            Message::ToggleGridVisibility => {
+                self.grid_visible = !self.grid_visible;
+                Task::none()
+            },
         }
     }
     
@@ -140,6 +147,7 @@ impl App {
         keyboard::on_key_press(|key, _modifiers| {
             match key.as_ref() {
                 keyboard::Key::Character("/") => Some(Message::FocusSearchInput),
+                keyboard::Key::Character("g") => Some(Message::ToggleGridVisibility),
                 keyboard::Key::Named(keyboard::key::Named::Escape) => Some(Message::UnselectAtom),
                 _ => None,
             }

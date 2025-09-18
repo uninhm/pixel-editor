@@ -85,4 +85,5 @@ pub enum Message {
     UnselectAtom,
     ZoomIn,
     ZoomOut,
+    ToggleGridVisibility,
 }

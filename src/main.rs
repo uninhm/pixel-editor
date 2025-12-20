@@ -6,18 +6,15 @@ use iced::keyboard;
 mod pixel_canvas;
 mod custom_widgets;
 
-use pixel_editor::{Grid, Atom, Message};
+use pixel_editor::{Atom, Message, ProgramState};
 use crate::pixel_canvas::PixelCanvas;
 
 struct App {
     search_input_string: String,
     atoms: Vec<Atom>,
-    grid: Grid<bool>,
-    selected_atom: Option<Atom>,
     holding_to_draw: bool,
     mouse_hold_value: bool, // Value to set cells to while mouse is down
-    cell_size: f32,
-    grid_visible: bool,
+    state: ProgramState,
 }
 
 impl Default for App {
@@ -25,12 +22,9 @@ impl Default for App {
         Self {
             search_input_string: String::new(),
             atoms: import_csv(),
-            grid: Grid::default(),
-            selected_atom: None,
             holding_to_draw: false,
             mouse_hold_value: false,
-            cell_size: 20.0,
-            grid_visible: true,
+            state: ProgramState::default(),
         }
     }
 }
@@ -65,12 +59,7 @@ impl App {
                 .on_input(Message::SearchInputChanged)
                 .width(Fill),
             search_results,
-            canvas(PixelCanvas::new(
-                self.grid.clone(),
-                self.selected_atom.clone(),
-                self.cell_size,
-                self.grid_visible,
-            ))
+            canvas(PixelCanvas::new(&self.state))
                 .width(Fill)
                 .height(Fill)
         ].padding(10).spacing(10)
@@ -86,35 +75,35 @@ impl App {
                 text_input::focus("search_input")
             },
             Message::CellClicked(x, y) => {
-                if let Some(atom) = &self.selected_atom {
+                if let Some(atom) = &self.state.selected_atom {
                     // TODO: Left click to paste only back pixels, right click to paste both
                     // and erase pixels
                     for i in 0..5 {
                         let y = y + i;
                         for j in 0..5 {
                             let x = x + j;
-                            self.grid.set(x, y, atom.nth_bit(i * 5 + j));
+                            self.state.grid.set(x, y, atom.nth_bit(i * 5 + j));
                         }
                     }
-                    self.selected_atom = None;
+                    self.state.selected_atom = None;
                 } else {
-                    self.grid.set(x, y, !self.grid.get(x, y));
-                    self.mouse_hold_value = self.grid.get(x, y);
+                    self.state.grid.set(x, y, !self.state.grid.get(x, y));
+                    self.mouse_hold_value = self.state.grid.get(x, y);
                     self.holding_to_draw = true;
                 }
                 Task::none()
             },
             Message::SelectAtom(atom) => {
-                self.selected_atom = Some(atom);
+                self.state.selected_atom = Some(atom);
                 Task::none()
             },
             Message::UnselectAtom => {
-                self.selected_atom = None;
+                self.state.selected_atom = None;
                 Task::none()
             },
             Message::CursorMovedToCell(x, y) => {
                 if self.holding_to_draw {
-                    self.grid.set(x, y, self.mouse_hold_value);
+                    self.state.grid.set(x, y, self.mouse_hold_value);
                 }
                 Task::none()
             },
@@ -123,21 +112,21 @@ impl App {
                 Task::none()
             },
             Message::ZoomIn => {
-                if self.cell_size <= 10.0 {
-                    self.cell_size += 1.0;
+                if self.state.cell_size <= 10.0 {
+                    self.state.cell_size += 1.0;
                 } else {
-                    self.cell_size *= 1.1;
+                    self.state.cell_size *= 1.1;
                 }
-                self.cell_size = self.cell_size.floor().min(100.0);
+                self.state.cell_size = self.state.cell_size.floor().min(100.0);
                 Task::none()
             },
             Message::ZoomOut => {
-                self.cell_size /= 1.1;
-                self.cell_size = self.cell_size.floor().max(5.0);
+                self.state.cell_size /= 1.1;
+                self.state.cell_size = self.state.cell_size.floor().max(5.0);
                 Task::none()
             },
             Message::ToggleGridVisibility => {
-                self.grid_visible = !self.grid_visible;
+                self.state.grid_visible = !self.state.grid_visible;
                 Task::none()
             },
         }

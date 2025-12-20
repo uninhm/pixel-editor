@@ -2,6 +2,13 @@ use std::collections::HashMap;
 
 pub type GridIndex = i64;
 type GridPoint = (GridIndex, GridIndex);
+
+#[derive(Debug, Clone)]
+pub enum Color {
+    Black,
+    White,
+}
+
 #[derive(Default, Clone)]
 pub struct Grid<T> {
     grid: HashMap<GridPoint, T>,
@@ -86,4 +93,49 @@ pub enum Message {
     ZoomIn,
     ZoomOut,
     ToggleGridVisibility,
+}
+
+#[derive(Debug, Clone)]
+pub enum Action {
+    Paint(Vec<GridPoint>, Color),
+}
+
+#[derive(Default, Clone)]
+pub struct UndoHistory {
+    stack: Vec<Action>,
+}
+
+impl UndoHistory {
+    pub fn new() -> Self {
+        Self { stack: Vec::new() }
+    }
+
+    pub fn push(&mut self, action: Action) {
+        self.stack.push(action);
+    }
+
+    pub fn pop(&mut self) -> Option<Action> {
+        self.stack.pop()
+    }
+}
+
+#[derive(Clone)]
+pub struct ProgramState {
+    pub grid: Grid<bool>,
+    pub cell_size: f32,
+    pub selected_atom: Option<Atom>,
+    pub grid_visible: bool,
+    pub undo_history: UndoHistory,
+}
+
+impl Default for ProgramState {
+    fn default() -> Self {
+        Self {
+            grid: Grid::default(),
+            cell_size: 20.0,
+            selected_atom: None,
+            grid_visible: true,
+            undo_history: UndoHistory::new(),
+        }
+    }
 }

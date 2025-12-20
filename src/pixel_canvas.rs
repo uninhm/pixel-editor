@@ -2,24 +2,15 @@ use iced::Point;
 use iced::widget::canvas;
 use iced::{mouse, event};
 
-use pixel_editor::{Message, Grid, GridIndex, Atom};
+use pixel_editor::{Message, Grid, GridIndex, Atom, ProgramState};
 
-#[derive(Default)]
-pub struct PixelCanvas {
-    grid: Grid<bool>,
-    selected_atom: Option<Atom>,
-    cell_size: f32,
-    grid_visible: bool,
+pub struct PixelCanvas<'a> {
+    program_state: &'a ProgramState,
 }
 
-impl PixelCanvas {
-    pub fn new(
-        grid: Grid<bool>,
-        selected_atom: Option<Atom>,
-        cell_size: f32,
-        grid_visible: bool,
-    ) -> Self {
-        Self { grid, selected_atom, cell_size, grid_visible }
+impl<'a> PixelCanvas<'a> {
+    pub fn new(program_state: &'a ProgramState) -> Self {
+        Self { program_state }
     }
 }
 
@@ -31,7 +22,7 @@ pub struct CanvasState {
     middle_button_top_left_start: Option<Point>,
 }
 
-impl canvas::Program<Message> for PixelCanvas {
+impl<'a> canvas::Program<Message> for PixelCanvas<'a> {
     type State = CanvasState;
     
 
@@ -42,8 +33,8 @@ impl canvas::Program<Message> for PixelCanvas {
         bounds: iced::Rectangle,
         _cursor: mouse::Cursor,
     ) -> (event::Status, Option<Message>) {
-        let x: GridIndex = ((state.mouse_pos.x - bounds.x + state.top_left.x) / self.cell_size).floor() as GridIndex;
-        let y: GridIndex = ((state.mouse_pos.y - bounds.y + state.top_left.y) / self.cell_size).floor() as GridIndex;
+        let x: GridIndex = ((state.mouse_pos.x - bounds.x + state.top_left.x) / self.program_state.cell_size).floor() as GridIndex;
+        let y: GridIndex = ((state.mouse_pos.y - bounds.y + state.top_left.y) / self.program_state.cell_size).floor() as GridIndex;
         match event {
             canvas::Event::Mouse(e) => {
                 match e {
@@ -116,30 +107,31 @@ impl canvas::Program<Message> for PixelCanvas {
         bounds: iced::Rectangle,
         _cursor: mouse::Cursor
     ) -> Vec<canvas::Geometry> {
+        let cell_size = self.program_state.cell_size;
         let mut frame = canvas::Frame::new(renderer, bounds.size());
-        let vert_cell_count = bounds.height/self.cell_size + 1.0;
-        let horz_cell_count = bounds.width/self.cell_size + 1.0;
+        let vert_cell_count = bounds.height/self.program_state.cell_size + 1.0;
+        let horz_cell_count = bounds.width/self.program_state.cell_size + 1.0;
         let stroke = canvas::Stroke::default()
             .with_width(0.7);
         
         // Distance from the top left corner to the next grid line to the top
         let mod_y = if state.top_left.y < 0.0 {
-            (state.top_left.y % self.cell_size + self.cell_size) % self.cell_size
+            (state.top_left.y % cell_size + cell_size) % cell_size
         } else {
-            state.top_left.y % self.cell_size
+            state.top_left.y % cell_size
         };
 
         // Distance from the top left corner to the next grid line to the left
         let mod_x = if state.top_left.x < 0.0 {
-            (state.top_left.x % self.cell_size + self.cell_size) % self.cell_size
+            (state.top_left.x % cell_size + cell_size) % cell_size
         } else {
-            state.top_left.x % self.cell_size
+            state.top_left.x % cell_size
         };
         
         // Draw grid lines
-        if self.grid_visible {
+        if self.program_state.grid_visible {
             for i in 0..=vert_cell_count as i32 {
-                let y = (i as f32 * self.cell_size) - state.top_left.y % self.cell_size;
+                let y = (i as f32 * cell_size) - state.top_left.y % cell_size;
                 let line = canvas::Path::line(
                     iced::Point::new(0.0, y),
                     iced::Point::new(bounds.width, y)
@@ -147,7 +139,7 @@ impl canvas::Program<Message> for PixelCanvas {
                 frame.stroke(&line, stroke);
             }
             for i in 0..=horz_cell_count as i32 {
-                let x = (i as f32 * self.cell_size).floor() - state.top_left.x % self.cell_size;
+                let x = (i as f32 * cell_size).floor() - state.top_left.x % cell_size;
                 let line = canvas::Path::line(
                     iced::Point::new(x, 0.0),
                     iced::Point::new(x, bounds.height)
@@ -158,17 +150,17 @@ impl canvas::Program<Message> for PixelCanvas {
 
         // Draw the black squares
         // TODO: Add color settings
-        let start_x = (state.top_left.x / self.cell_size).floor() as i64;
-        let start_y = (state.top_left.y / self.cell_size).floor() as i64;
+        let start_x = (state.top_left.x / cell_size).floor() as i64;
+        let start_y = (state.top_left.y / cell_size).floor() as i64;
         for i in 0..=vert_cell_count as i64 {
-            let y = i as f32 * self.cell_size - mod_y;
+            let y = i as f32 * cell_size - mod_y;
             for j in 0..=horz_cell_count as i64 {
-                let x = j as f32 * self.cell_size - mod_x;
+                let x = j as f32 * cell_size - mod_x;
                 let rect = canvas::Path::rectangle(
                     Point::new(x, y),
-                    iced::Size::new(self.cell_size, self.cell_size),
+                    iced::Size::new(cell_size, cell_size),
                 );
-                if self.grid.get(start_x + j , start_y + i) {
+                if self.program_state.grid.get(start_x + j , start_y + i) {
                     frame.fill(
                         &rect,
                         iced::Color::BLACK
@@ -177,20 +169,20 @@ impl canvas::Program<Message> for PixelCanvas {
             }
         }
         
-        if bounds.contains(state.mouse_pos) && let Some(atom) = &self.selected_atom {
+        if bounds.contains(state.mouse_pos) && let Some(atom) = &self.program_state.selected_atom {
             // Adding the mods first will align the grid to (0, 0) so the cell_size snapping calculation works
             // Then substracting them will offset everything back just like the block rendering above
             let mouse_relative_x = state.mouse_pos.x - bounds.x + mod_x;
             let mouse_relative_y = state.mouse_pos.y - bounds.y + mod_y;
-            let start_x = (mouse_relative_x / self.cell_size).floor() * self.cell_size - mod_x;
-            let start_y = (mouse_relative_y / self.cell_size).floor() * self.cell_size - mod_y;
+            let start_x = (mouse_relative_x / cell_size).floor() * cell_size - mod_x;
+            let start_y = (mouse_relative_y / cell_size).floor() * cell_size - mod_y;
             for i in 0..5 {
                 for j in 0..5 {
-                    let x = start_x + (j as f32 * self.cell_size);
-                    let y = start_y + (i as f32 * self.cell_size);
+                    let x = start_x + (j as f32 * cell_size);
+                    let y = start_y + (i as f32 * cell_size);
                     let rect = canvas::Path::rectangle(
                         Point::new(x, y),
-                        iced::Size::new(self.cell_size, self.cell_size),
+                        iced::Size::new(cell_size, cell_size),
                     );
                     if atom.nth_bit(i * 5 + j) {
                         frame.fill(

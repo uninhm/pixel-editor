@@ -1,12 +1,30 @@
 use std::collections::HashMap;
+use std::ops::Not;
 
 pub type GridIndex = i64;
-type GridPoint = (GridIndex, GridIndex);
+pub type GridPoint = (GridIndex, GridIndex);
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Color {
     Black,
     White,
+}
+
+impl Default for Color {
+    fn default() -> Self {
+        Color::White
+    }
+}
+
+impl Not for Color {
+    type Output = Color;
+
+    fn not(self) -> Self::Output {
+        match self {
+            Color::Black => Color::White,
+            Color::White => Color::Black,
+        }
+    }
 }
 
 #[derive(Default, Clone)]
@@ -73,11 +91,15 @@ impl Atom {
         self.words.iter().any(|word| word.to_lowercase().contains(&query.to_lowercase()))
     }
     
-    pub fn nth_bit(&self, n: i64) -> bool {
+    pub fn nth_bit(&self, n: i64) -> Color {
         if n >= 25 {
             panic!("Bit index out of range");
         }
-        (self.pattern >> (24 - n)) & 1 != 0
+        if (self.pattern >> (24 - n)) & 1 != 0 {
+            Color::Black
+        } else {
+            Color::White
+        }
     }
 }
 
@@ -93,11 +115,12 @@ pub enum Message {
     ZoomIn,
     ZoomOut,
     ToggleGridVisibility,
+    Undo,
 }
 
 #[derive(Debug, Clone)]
 pub enum Action {
-    Paint(Vec<GridPoint>, Color),
+    Paint(Vec<(GridPoint, Color)>),
 }
 
 #[derive(Default, Clone)]
@@ -121,7 +144,7 @@ impl UndoHistory {
 
 #[derive(Clone)]
 pub struct ProgramState {
-    pub grid: Grid<bool>,
+    pub grid: Grid<Color>,
     pub cell_size: f32,
     pub selected_atom: Option<Atom>,
     pub grid_visible: bool,

@@ -35,7 +35,8 @@ cargo build --realease
 - [ ] Select cells
 - [ ] Delete selection
 - [ ] Display selection's meaning
-- [ ] Undo - redo
+- [x] Undo
+- [ ] Redo
 - [x] Toggle grid with `g`
 
 ## Usage

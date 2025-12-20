@@ -2,7 +2,7 @@ use iced::Point;
 use iced::widget::canvas;
 use iced::{mouse, event};
 
-use pixel_editor::{Message, Grid, GridIndex, Atom, ProgramState};
+use pixel_editor::{Color, GridIndex, Message, ProgramState};
 
 pub struct PixelCanvas<'a> {
     program_state: &'a ProgramState,
@@ -20,6 +20,7 @@ pub struct CanvasState {
     top_left: Point,
     middle_button_start: Option<Point>,
     middle_button_top_left_start: Option<Point>,
+    last_cell: Option<(GridIndex, GridIndex)>,
 }
 
 impl<'a> canvas::Program<Message> for PixelCanvas<'a> {
@@ -46,7 +47,15 @@ impl<'a> canvas::Program<Message> for PixelCanvas<'a> {
                             state.top_left.x = middle_button_start.x - (state.mouse_pos.x - start.x);
                             state.top_left.y = middle_button_start.y - (state.mouse_pos.y - start.y);
                         }
-                        (event::Status::Captured, Some(Message::CursorMovedToCell(x, y)))
+                        let message =
+                            if state.last_cell != Some((x, y)) {
+                                state.last_cell = Some((x, y));
+                                Some(Message::CursorMovedToCell(x, y))
+                            } else {
+                                None
+                            };
+
+                        (event::Status::Captured, message)
                     },
                     mouse::Event::ButtonPressed(mouse::Button::Left) => {
                         if !bounds.contains(state.mouse_pos) {
@@ -160,7 +169,7 @@ impl<'a> canvas::Program<Message> for PixelCanvas<'a> {
                     Point::new(x, y),
                     iced::Size::new(cell_size, cell_size),
                 );
-                if self.program_state.grid.get(start_x + j , start_y + i) {
+                if self.program_state.grid.get(start_x + j , start_y + i) == Color::Black {
                     frame.fill(
                         &rect,
                         iced::Color::BLACK
@@ -184,7 +193,7 @@ impl<'a> canvas::Program<Message> for PixelCanvas<'a> {
                         Point::new(x, y),
                         iced::Size::new(cell_size, cell_size),
                     );
-                    if atom.nth_bit(i * 5 + j) {
+                    if atom.nth_bit(i * 5 + j) == Color::Black {
                         frame.fill(
                             &rect,
                             iced::Color::from_rgb(0.0, 0.0,1.0) 

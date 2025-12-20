@@ -6,14 +6,18 @@ use iced::keyboard;
 mod pixel_canvas;
 mod custom_widgets;
 
-use pixel_editor::{Atom, Message, ProgramState};
+use pixel_editor::{Atom, Message, ProgramState, GridPoint, Color, Action};
 use crate::pixel_canvas::PixelCanvas;
+use std::mem;
 
 struct App {
     search_input_string: String,
     atoms: Vec<Atom>,
     holding_to_draw: bool,
-    mouse_hold_value: bool, // Value to set cells to while mouse is down
+    // This stores the cells being changed while the mouse is held down
+    // for undo purposes
+    holding_to_draw_cells: Vec<(GridPoint, Color)>,
+    mouse_hold_value: Color, // Value to set cells to while mouse is down
     state: ProgramState,
 }
 
@@ -23,7 +27,8 @@ impl Default for App {
             search_input_string: String::new(),
             atoms: import_csv(),
             holding_to_draw: false,
-            mouse_hold_value: false,
+            holding_to_draw_cells: Vec::new(),
+            mouse_hold_value: Color::default(),
             state: ProgramState::default(),
         }
     }
@@ -78,18 +83,25 @@ impl App {
                 if let Some(atom) = &self.state.selected_atom {
                     // TODO: Left click to paste only back pixels, right click to paste both
                     // and erase pixels
+                    let mut cells: Vec<(GridPoint, Color)> = Vec::new();
                     for i in 0..5 {
                         let y = y + i;
                         for j in 0..5 {
                             let x = x + j;
+                            cells.push(((x, y), self.state.grid.get(x, y)));
                             self.state.grid.set(x, y, atom.nth_bit(i * 5 + j));
                         }
                     }
                     self.state.selected_atom = None;
+                    self.state.undo_history.push(Action::Paint(cells));
                 } else {
-                    self.state.grid.set(x, y, !self.state.grid.get(x, y));
-                    self.mouse_hold_value = self.state.grid.get(x, y);
                     self.holding_to_draw = true;
+                    self.holding_to_draw_cells.push(
+                        ((x, y), self.state.grid.get(x, y))
+                    );
+                    let new_color = !self.state.grid.get(x, y);
+                    self.state.grid.set(x, y, new_color);
+                    self.mouse_hold_value = new_color;
                 }
                 Task::none()
             },
@@ -102,13 +114,20 @@ impl App {
                 Task::none()
             },
             Message::CursorMovedToCell(x, y) => {
-                if self.holding_to_draw {
+                if self.holding_to_draw &&
+                   self.state.grid.get(x, y) != self.mouse_hold_value {
+                    self.holding_to_draw_cells.push(((x, y), self.state.grid.get(x, y)));
                     self.state.grid.set(x, y, self.mouse_hold_value);
                 }
                 Task::none()
             },
             Message::MouseReleased => {
-                self.holding_to_draw = false;
+                if self.holding_to_draw {
+                    self.holding_to_draw = false;
+                    self.state.undo_history.push(
+                        Action::Paint(mem::replace(&mut self.holding_to_draw_cells, Vec::new()))
+                    );
+                }
                 Task::none()
             },
             Message::ZoomIn => {
@@ -129,6 +148,19 @@ impl App {
                 self.state.grid_visible = !self.state.grid_visible;
                 Task::none()
             },
+            Message::Undo => {
+                if let Some(action) = self.state.undo_history.pop() {
+                    match action {
+                        Action::Paint(cells) => {
+                            for (point, color) in cells {
+                                let (x, y) = point;
+                                self.state.grid.set(x, y, color);
+                            }
+                        },
+                    }
+                }
+                Task::none()
+            },
         }
     }
     
@@ -138,6 +170,7 @@ impl App {
                 keyboard::Key::Character("/") => Some(Message::FocusSearchInput),
                 keyboard::Key::Character("g") => Some(Message::ToggleGridVisibility),
                 keyboard::Key::Named(keyboard::key::Named::Escape) => Some(Message::UnselectAtom),
+                keyboard::Key::Character("u") => Some(Message::Undo),
                 _ => None,
             }
         })

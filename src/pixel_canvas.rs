@@ -137,26 +137,6 @@ impl<'a> canvas::Program<Message> for PixelCanvas<'a> {
             state.top_left.x % cell_size
         };
         
-        // Draw grid lines
-        if self.program_state.grid_visible {
-            for i in 0..=vert_cell_count as i32 {
-                let y = (i as f32 * cell_size) - state.top_left.y % cell_size;
-                let line = canvas::Path::line(
-                    iced::Point::new(0.0, y),
-                    iced::Point::new(bounds.width, y)
-                );
-                frame.stroke(&line, stroke);
-            }
-            for i in 0..=horz_cell_count as i32 {
-                let x = (i as f32 * cell_size).floor() - state.top_left.x % cell_size;
-                let line = canvas::Path::line(
-                    iced::Point::new(x, 0.0),
-                    iced::Point::new(x, bounds.height)
-                );
-                frame.stroke(&line, stroke);
-            }
-        }
-
         // Draw the black squares
         // TODO: Add color settings
         let start_x = (state.top_left.x / cell_size).floor() as i64;
@@ -178,6 +158,7 @@ impl<'a> canvas::Program<Message> for PixelCanvas<'a> {
             }
         }
         
+        // Draw the preview of the selected atom
         if bounds.contains(state.mouse_pos) && let Some(atom) = &self.program_state.selected_atom {
             // Adding the mods first will align the grid to (0, 0) so the cell_size snapping calculation works
             // Then substracting them will offset everything back just like the block rendering above
@@ -185,7 +166,7 @@ impl<'a> canvas::Program<Message> for PixelCanvas<'a> {
             let mouse_relative_y = state.mouse_pos.y - bounds.y + mod_y;
             let start_x = (mouse_relative_x / cell_size).floor() * cell_size - mod_x;
             let start_y = (mouse_relative_y / cell_size).floor() * cell_size - mod_y;
-            for i in 0..5 {
+            for i in 0..5 { // TODO: Unhardcode atom size
                 for j in 0..5 {
                     let x = start_x + (j as f32 * cell_size);
                     let y = start_y + (i as f32 * cell_size);
@@ -193,13 +174,37 @@ impl<'a> canvas::Program<Message> for PixelCanvas<'a> {
                         Point::new(x, y),
                         iced::Size::new(cell_size, cell_size),
                     );
-                    if atom.nth_bit(i * 5 + j) == Color::Black {
-                        frame.fill(
-                            &rect,
-                            iced::Color::from_rgb(0.0, 0.0,1.0) 
-                        );
-                    }
+                    let color =
+                        if atom.nth_bit(i*5 + j) == Color::Black {
+                            iced::Color::from_rgb(0.0, 0.4, 0.9)
+                        } else {
+                            iced::Color::from_rgb(0.75, 0.85, 1.0)
+                        };
+                    frame.fill(
+                        &rect,
+                        color,
+                    );
                 }
+            }
+        }
+
+        // Draw grid lines
+        if self.program_state.grid_visible {
+            for i in 0..=vert_cell_count as i32 {
+                let y = (i as f32 * cell_size) - state.top_left.y % cell_size;
+                let line = canvas::Path::line(
+                    iced::Point::new(0.0, y),
+                    iced::Point::new(bounds.width, y)
+                );
+                frame.stroke(&line, stroke);
+            }
+            for i in 0..=horz_cell_count as i32 {
+                let x = (i as f32 * cell_size).floor() - state.top_left.x % cell_size;
+                let line = canvas::Path::line(
+                    iced::Point::new(x, 0.0),
+                    iced::Point::new(x, bounds.height)
+                );
+                frame.stroke(&line, stroke);
             }
         }
 

@@ -161,6 +161,11 @@ impl App {
                 }
                 Task::none()
             },
+            Message::ExportImage => {
+                let img = self.state.grid.render(10);
+                img.save("export.png").expect("Failed to save image");
+                Task::none()
+            },
         }
     }
     
@@ -171,6 +176,7 @@ impl App {
                 keyboard::Key::Character("g") => Some(Message::ToggleGridVisibility),
                 keyboard::Key::Named(keyboard::key::Named::Escape) => Some(Message::UnselectAtom),
                 keyboard::Key::Character("u") => Some(Message::Undo),
+                keyboard::Key::Character("x") => Some(Message::ExportImage),
                 _ => None,
             }
         })

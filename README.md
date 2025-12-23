@@ -28,7 +28,7 @@ cargo build --realease
 ## Planned features
 - [ ] Save drawing
 - [ ] Import drawing
-- [ ] Export drawing
+- [x] Export drawing
 - [ ] Settings file
 - [ ] Settings GUI
 - [ ] Colors

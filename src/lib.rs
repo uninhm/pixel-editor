@@ -1,8 +1,13 @@
 use std::collections::HashMap;
 use std::ops::Not;
+use image::{Rgba, RgbaImage};
 
 pub type GridIndex = i64;
 pub type GridPoint = (GridIndex, GridIndex);
+
+pub trait ToRgba {
+    fn to_rgba(&self) -> Rgba<u8>;
+}
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Color {
@@ -27,12 +32,21 @@ impl Not for Color {
     }
 }
 
+impl ToRgba for Color {
+    fn to_rgba(&self) -> Rgba<u8> {
+        match self {
+            Color::Black => Rgba([0, 0, 0, 255]),
+            Color::White => Rgba([255, 255, 255, 255]),
+        }
+    }
+}
+
 #[derive(Default, Clone)]
 pub struct Grid<T> {
     grid: HashMap<GridPoint, T>,
 }
 
-impl<T> Grid<T> where T: Default + Copy {
+impl<T> Grid<T> where T: Default + Copy + ToRgba {
     pub fn get(&self, x: GridIndex, y: GridIndex) -> T {
         match self.grid.get(&(x, y)) {
             Some(&val) => val,
@@ -42,6 +56,28 @@ impl<T> Grid<T> where T: Default + Copy {
 
     pub fn set(&mut self, x: GridIndex, y: GridIndex, val: T) {
         self.grid.insert((x, y), val);
+    }
+
+    pub fn render(&self, pixel_size: u32) -> RgbaImage {
+        let min_x = self.grid.keys().map(|(x, _)| *x).min().unwrap_or(0);
+        let min_y = self.grid.keys().map(|(_, y)| *y).min().unwrap_or(0);
+        let max_x = self.grid.keys().map(|(x, _)| *x).max().unwrap_or(0);
+        let max_y = self.grid.keys().map(|(_, y)| *y).max().unwrap_or(0);
+        let width = (max_x - min_x + 1) as u32;
+        let height = (max_y - min_y + 1) as u32;
+        let mut img = RgbaImage::new(pixel_size*width, pixel_size*height);
+        img.pixels_mut().for_each(|p| *p = T::default().to_rgba());
+        for ((x, y), &color) in &self.grid {
+            let rgba = color.to_rgba();
+            let px = (*x - min_x) as u32;
+            let py = (*y - min_y) as u32;
+            for dx in 0..pixel_size {
+                for dy in 0..pixel_size {
+                    img.put_pixel(px*pixel_size + dx, py*pixel_size + dy, rgba);
+                }
+            }
+        }
+        img
     }
 }
 
@@ -116,6 +152,7 @@ pub enum Message {
     ZoomOut,
     ToggleGridVisibility,
     Undo,
+    ExportImage,
 }
 
 #[derive(Debug, Clone)]

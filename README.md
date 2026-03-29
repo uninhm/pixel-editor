@@ -50,6 +50,8 @@ cargo build --realease
 ### Keys
 - `/` to focus the search bar.
 - `Esc` to unselect a pattern without pasting it.
+- `g` to toggle the grid.
+- `u` to undo.
 ### Data file
 Create a file called `data.csv` with your patterns in the following format (no headers):
 ```csv
